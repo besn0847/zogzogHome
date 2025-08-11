@@ -1,0 +1,148 @@
+version: '3.8'
+
+services:
+  # MongoDB - Base de données pour métadonnées
+  mongodb:
+    image: mongo:7.0
+    container_name: docpdf-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME:-docpdf_admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-secure_password}
+      MONGO_INITDB_DATABASE: docpdf
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+      - ./scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - docpdf-network
+
+  # Qdrant - Base de données vectorielle pour embeddings
+  qdrant:
+    image: qdrant/qdrant:v1.7.0
+    container_name: docpdf-qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      QDRANT__SERVICE__HTTP_PORT: 6333
+      QDRANT__SERVICE__GRPC_PORT: 6334
+    networks:
+      - docpdf-network
+
+  # Redis - Cache et sessions
+  redis:
+    image: redis:7.2-alpine
+    container_name: docpdf-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_password}
+    networks:
+      - docpdf-network
+
+  # Nginx - Reverse proxy et serveur statique
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: docpdf-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - docpdf-network
+
+  # Backend - API NextJS
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: docpdf-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      MONGODB_URI: mongodb://${MONGO_USERNAME:-docpdf_admin}:${MONGO_PASSWORD:-secure_password}@mongodb:27017/docpdf?authSource=admin
+      REDIS_URL: redis://:${REDIS_PASSWORD:-redis_password}@redis:6379
+      QDRANT_URL: http://qdrant:6333
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key}
+      DOCLING_SERVICE_URL: http://docling-service:8000
+      PDF_STORAGE_PATH: /app/storage/pdfs
+      CORS_ORIGIN: http://localhost:3000
+    ports:
+      - "3001:3001"
+    volumes:
+      - pdf_storage:/app/storage/pdfs
+      - markdown_output:/app/output/markdown
+    depends_on:
+      - mongodb
+      - redis
+      - qdrant
+      - docling-service
+    networks:
+      - docpdf-network
+
+  # Frontend - Interface NextJS
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: docpdf-frontend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_BACKEND_URL: http://localhost:3001
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - docpdf-network
+
+  # Service Docling - Conversion PDF vers Markdown
+  docling-service:
+    build:
+      context: ./docling-service
+      dockerfile: Dockerfile
+    container_name: docpdf-docling
+    restart: unless-stopped
+    environment:
+      PYTHONUNBUFFERED: 1
+      LOG_LEVEL: INFO
+    ports:
+      - "8000:8000"
+    volumes:
+      - pdf_storage:/app/input:ro
+      - markdown_output:/app/output
+    networks:
+      - docpdf-network
+
+volumes:
+  mongodb_data:
+    driver: local
+  qdrant_data:
+    driver: local
+  redis_data:
+    driver: local
+  pdf_storage:
+    driver: local
+  markdown_output:
+    driver: local
+  nginx_logs:
+    driver: local
+
+networks:
+  docpdf-network:
+    driver: bridge

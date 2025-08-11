@@ -6,6 +6,8 @@
 .env.development.local
 .env.test.local
 .env.production.local
+.env.test
+backend/.env.test
 
 # Node.js et npm
 node_modules/
@@ -132,6 +134,7 @@ coverage.xml
 # Docker
 .dockerignore
 docker-compose.override.yml
+docker-compose.test.yml
 
 # Données et stockage
 data/
@@ -140,6 +143,8 @@ uploads/
 pdfs/
 markdown/
 backups/
+output/
+input/
 *.pdf
 *.md
 !README.md
@@ -147,6 +152,13 @@ backups/
 !SPECS.md
 !BOOTSTRAP.md
 !VIBE.md
+
+# Test files et coverage
+coverage/
+test-results/
+*.test.js.snap
+jest-coverage/
+frontend/src/__tests__/setup.test.js
 
 # Bases de données
 *.db
@@ -198,6 +210,31 @@ $RECYCLE.BIN/
 *.msm
 *.msp
 *.lnk
+
+# Nginx et SSL
+nginx/ssl/
+nginx/logs/
+
+# Docker volumes et données persistantes
+mongodb_data/
+qdrant_data/
+redis_data/
+pdf_storage/
+markdown_output/
+nginx_logs/
+
+# Fichiers de sauvegarde et temporaires
+*.bak
+*.backup
+*.tmp
+*.temp
+*~
+
+# Fichiers système et cache
+.cache/
+.tmp/
+.DS_Store?
+Thumbs.db?
 
 # Linux
 *~

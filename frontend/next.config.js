@@ -15,7 +15,7 @@ const nextConfig = {
     domains: ['localhost'],
   },
   experimental: {
-    appDir: true,
+    // appDir is now default in Next.js 13+
   },
 }
 

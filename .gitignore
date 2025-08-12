@@ -147,11 +147,7 @@ output/
 input/
 *.pdf
 *.md
-!README.md
-!TODO.md
-!SPECS.md
-!BOOTSTRAP.md
-!VIBE.md
+
 
 # Test files et coverage
 coverage/
@@ -260,3 +256,6 @@ test-results/
 playwright-report/
 test-results.xml
 coverage.xml
+
+# Samples
+examples/

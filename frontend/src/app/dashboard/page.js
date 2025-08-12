@@ -9,7 +9,10 @@ import {
   UserIcon,
   ChartBarIcon,
   DocumentTextIcon,
-  ChatBubbleLeftRightIcon
+  ChatBubbleLeftRightIcon,
+  Bars3Icon,
+  BellIcon,
+  Cog6ToothIcon
 } from '@heroicons/react/24/outline'
 import { useAuthStore } from '../../lib/stores/authStore'
 import DocumentUpload from '../../components/DocumentUpload'
@@ -23,6 +26,7 @@ export default function DashboardPage() {
   const [showUpload, setShowUpload] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedCollection, setSelectedCollection] = useState(null)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
   const [stats, setStats] = useState({
     totalDocuments: 0,
     totalCollections: 0,
@@ -50,8 +54,8 @@ export default function DashboardPage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     )
   }
@@ -60,51 +64,81 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="flex h-screen">
         {/* Sidebar */}
-        <div className="w-64 flex-shrink-0">
+        <div className={`${sidebarOpen ? 'w-64' : 'w-16'} transition-all duration-300 flex-shrink-0 bg-white border-r border-gray-200`}>
           <Sidebar 
             selectedCollection={selectedCollection}
             onSelectCollection={setSelectedCollection}
+            isCollapsed={!sidebarOpen}
           />
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden bg-white">
           {/* Header */}
-          <header className="bg-white border-b border-gray-200 px-6 py-4">
+          <header className="bg-white border-b border-gray-200 px-6 py-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <h1 className="text-2xl font-bold text-gray-900">
-                  Tableau de bord
-                </h1>
-                {selectedCollection && (
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                    <FolderIcon className="w-4 h-4 mr-1" />
-                    {selectedCollection.name}
-                  </span>
-                )}
+                <button
+                  onClick={() => setSidebarOpen(!sidebarOpen)}
+                  className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <Bars3Icon className="w-5 h-5 text-gray-600" />
+                </button>
+                
+                <div className="flex items-center space-x-3">
+                  <h1 className="text-xl font-semibold text-gray-900">
+                    {selectedCollection ? selectedCollection.name : 'All Documents'}
+                  </h1>
+                  {selectedCollection && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                      <FolderIcon className="w-3 h-3 mr-1" />
+                      Collection
+                    </span>
+                  )}
+                </div>
               </div>
               
               <div className="flex items-center space-x-3">
-                <SearchBar 
-                  onSearch={handleSearch}
-                  placeholder="Rechercher dans vos documents..."
-                />
+                <div className="hidden md:block">
+                  <SearchBar 
+                    onSearch={handleSearch}
+                    placeholder="Search documents..."
+                  />
+                </div>
+                
                 <button
                   onClick={() => setShowUpload(true)}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
                 >
-                  <DocumentPlusIcon className="w-5 h-5 mr-2" />
-                  Nouveau document
+                  <DocumentPlusIcon className="w-4 h-4 mr-2" />
+                  <span className="hidden sm:inline">New Document</span>
+                </button>
+                
+                <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                  <BellIcon className="w-5 h-5 text-gray-600" />
+                </button>
+                
+                <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                  <Cog6ToothIcon className="w-5 h-5 text-gray-600" />
                 </button>
                 
                 {/* User Menu */}
                 <div className="relative">
                   <button
                     onClick={handleLogout}
-                    className="flex items-center text-sm text-gray-700 hover:text-gray-900"
+                    className="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 transition-colors"
                   >
-                    <UserIcon className="w-5 h-5 mr-1" />
-                    {user?.firstName} {user?.lastName}
+                    <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                      <span className="text-white text-sm font-medium">
+                        {user?.firstName?.[0]}{user?.lastName?.[0]}
+                      </span>
+                    </div>
+                    <div className="hidden lg:block text-left">
+                      <div className="text-sm font-medium text-gray-900">
+                        {user?.firstName} {user?.lastName}
+                      </div>
+                      <div className="text-xs text-gray-500">{user?.email}</div>
+                    </div>
                   </button>
                 </div>
               </div>
@@ -112,95 +146,82 @@ export default function DashboardPage() {
           </header>
 
           {/* Content */}
-          <main className="flex-1 overflow-y-auto p-6">
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <div className="bg-white overflow-hidden shadow rounded-lg">
-                <div className="p-5">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <DocumentTextIcon className="h-6 w-6 text-gray-400" />
-                    </div>
-                    <div className="ml-5 w-0 flex-1">
-                      <dl>
-                        <dt className="text-sm font-medium text-gray-500 truncate">
-                          Documents totaux
-                        </dt>
-                        <dd className="text-lg font-medium text-gray-900">
-                          {stats.totalDocuments}
-                        </dd>
-                      </dl>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white overflow-hidden shadow rounded-lg">
-                <div className="p-5">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <FolderIcon className="h-6 w-6 text-gray-400" />
-                    </div>
-                    <div className="ml-5 w-0 flex-1">
-                      <dl>
-                        <dt className="text-sm font-medium text-gray-500 truncate">
-                          Collections
-                        </dt>
-                        <dd className="text-lg font-medium text-gray-900">
-                          {stats.totalCollections}
-                        </dd>
-                      </dl>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white overflow-hidden shadow rounded-lg">
-                <div className="p-5">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <ChartBarIcon className="h-6 w-6 text-gray-400" />
-                    </div>
-                    <div className="ml-5 w-0 flex-1">
-                      <dl>
-                        <dt className="text-sm font-medium text-gray-500 truncate">
-                          Uploads récents
-                        </dt>
-                        <dd className="text-lg font-medium text-gray-900">
-                          {stats.recentUploads}
-                        </dd>
-                      </dl>
-                    </div>
-                  </div>
-                </div>
-              </div>
+          <main className="flex-1 overflow-y-auto bg-gray-50">
+            {/* Mobile Search */}
+            <div className="md:hidden p-4 bg-white border-b border-gray-200">
+              <SearchBar 
+                onSearch={handleSearch}
+                placeholder="Search documents..."
+              />
             </div>
 
             {/* Welcome Message for New Users */}
             {stats.totalDocuments === 0 && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <DocumentPlusIcon className="h-6 w-6 text-blue-600" />
+              <div className="p-6">
+                <div className="bg-white border border-gray-200 rounded-xl p-8 text-center">
+                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <DocumentPlusIcon className="h-8 w-8 text-blue-600" />
                   </div>
-                  <div className="ml-3">
-                    <h3 className="text-sm font-medium text-blue-800">
-                      Bienvenue dans DocPDF Manager !
-                    </h3>
-                    <div className="mt-2 text-sm text-blue-700">
-                      <p>
-                        Commencez par télécharger votre premier document PDF. 
-                        Il sera automatiquement converti en Markdown et indexé pour la recherche intelligente.
-                      </p>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    Welcome to DocPDF Manager
+                  </h3>
+                  <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                    Start by uploading your first PDF document. It will be automatically converted to Markdown and indexed for intelligent search.
+                  </p>
+                  <button
+                    onClick={() => setShowUpload(true)}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                  >
+                    <DocumentPlusIcon className="w-4 h-4 mr-2" />
+                    Upload your first document
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Stats Cards - Only show when there are documents */}
+            {stats.totalDocuments > 0 && (
+              <div className="p-6 pb-0">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div className="bg-white border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <DocumentTextIcon className="h-5 w-5 text-blue-600" />
+                        </div>
+                      </div>
+                      <div className="ml-4">
+                        <p className="text-sm font-medium text-gray-600">Total Documents</p>
+                        <p className="text-2xl font-semibold text-gray-900">{stats.totalDocuments}</p>
+                      </div>
                     </div>
-                    <div className="mt-4">
-                      <button
-                        onClick={() => setShowUpload(true)}
-                        className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                      >
-                        <DocumentPlusIcon className="w-4 h-4 mr-1" />
-                        Télécharger un document
-                      </button>
+                  </div>
+
+                  <div className="bg-white border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                          <FolderIcon className="h-5 w-5 text-green-600" />
+                        </div>
+                      </div>
+                      <div className="ml-4">
+                        <p className="text-sm font-medium text-gray-600">Collections</p>
+                        <p className="text-2xl font-semibold text-gray-900">{stats.totalCollections}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                          <ChartBarIcon className="h-5 w-5 text-purple-600" />
+                        </div>
+                      </div>
+                      <div className="ml-4">
+                        <p className="text-sm font-medium text-gray-600">Recent Uploads</p>
+                        <p className="text-2xl font-semibold text-gray-900">{stats.recentUploads}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -208,10 +229,12 @@ export default function DashboardPage() {
             )}
 
             {/* Document List */}
-            <DocumentList 
-              searchQuery={searchQuery}
-              selectedCollection={selectedCollection}
-            />
+            <div className="p-6 pt-0">
+              <DocumentList 
+                searchQuery={searchQuery}
+                selectedCollection={selectedCollection}
+              />
+            </div>
           </main>
         </div>
       </div>

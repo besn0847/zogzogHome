@@ -88,82 +88,90 @@ export default function DocumentList({ searchQuery, selectedCollection }) {
 
   if (documents.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">
-        <DocumentIcon className="mx-auto h-12 w-12 text-gray-400" />
-        <h3 className="mt-2 text-sm font-medium text-gray-900">Aucun document</h3>
-        <p className="mt-1 text-sm text-gray-500">
-          Commencez par télécharger votre premier document PDF.
+      <div className="text-center py-12">
+        <DocumentIcon className="mx-auto h-12 w-12 text-gray-300" />
+        <h3 className="mt-4 text-sm font-medium text-gray-900">No documents found</h3>
+        <p className="mt-2 text-sm text-gray-500">
+          {searchQuery ? 'Try adjusting your search terms.' : 'Upload your first PDF document to get started.'}
         </p>
       </div>
     )
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="space-y-3">
       {documents.map((doc) => (
-        <div key={doc.id} className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow">
+        <div key={doc.id} className="bg-white border border-gray-200 rounded-lg hover:shadow-sm transition-all duration-200 hover:border-gray-300">
           <div className="p-4">
-            <div className="flex items-center">
-              <DocumentIcon className="h-8 w-8 text-gray-400" />
-              <div className="ml-3 flex-1">
-                <h3 className="text-sm font-medium text-gray-900 truncate" title={doc.title}>
-                  {doc.title}
-                </h3>
-                <p className="text-sm text-gray-500">
-                  {new Date(doc.createdAt).toLocaleDateString('fr-FR')}
-                </p>
-                {doc.size && (
-                  <p className="text-xs text-gray-400">
-                    {(doc.size / 1024 / 1024).toFixed(1)} MB
-                  </p>
-                )}
+            <div className="flex items-start justify-between">
+              <div className="flex items-start space-x-3 flex-1 min-w-0">
+                <div className="flex-shrink-0">
+                  <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                    <DocumentIcon className="h-5 w-5 text-red-600" />
+                  </div>
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center space-x-2">
+                    <h3 className="text-sm font-medium text-gray-900 truncate" title={doc.title}>
+                      {doc.title}
+                    </h3>
+                    {doc.status && (
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        doc.status === 'processed' 
+                          ? 'bg-green-100 text-green-700' 
+                          : doc.status === 'processing'
+                          ? 'bg-yellow-100 text-yellow-700'
+                          : 'bg-red-100 text-red-700'
+                      }`}>
+                        {doc.status === 'processed' ? 'Processed' : 
+                         doc.status === 'processing' ? 'Processing' : 'Error'}
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className="mt-1 flex items-center space-x-4 text-xs text-gray-500">
+                    <span>{new Date(doc.createdAt).toLocaleDateString('en-US', { 
+                      month: 'short', 
+                      day: 'numeric',
+                      year: 'numeric'
+                    })}</span>
+                    {doc.size && (
+                      <span>{(doc.size / 1024 / 1024).toFixed(1)} MB</span>
+                    )}
+                    {doc.collection && (
+                      <span className="inline-flex items-center">
+                        <FolderIcon className="w-3 h-3 mr-1" />
+                        {doc.collection.name}
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-            
-            {/* Document metadata */}
-            <div className="mt-3">
-              {doc.collection && (
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                  <FolderIcon className="w-3 h-3 mr-1" />
-                  {doc.collection.name}
-                </span>
-              )}
-              {doc.status && (
-                <span className={`ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                  doc.status === 'processed' 
-                    ? 'bg-green-100 text-green-800' 
-                    : doc.status === 'processing'
-                    ? 'bg-yellow-100 text-yellow-800'
-                    : 'bg-red-100 text-red-800'
-                }`}>
-                  {doc.status === 'processed' ? 'Traité' : 
-                   doc.status === 'processing' ? 'En cours' : 'Erreur'}
-                </span>
-              )}
-            </div>
-            
-            <div className="mt-4 flex justify-end space-x-2">
-              <button 
-                onClick={() => handleView(doc.id)}
-                className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded"
-                title="Voir le document"
-              >
-                <EyeIcon className="h-4 w-4" />
-              </button>
-              <button 
-                onClick={() => handleChat(doc.id)}
-                className="p-1 text-green-600 hover:text-green-800 hover:bg-green-50 rounded"
-                title="Chat avec le document"
-              >
-                <ChatBubbleLeftRightIcon className="h-4 w-4" />
-              </button>
-              <button 
-                onClick={() => handleDelete(doc.id)}
-                className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded"
-                title="Supprimer le document"
-              >
-                <TrashIcon className="h-4 w-4" />
-              </button>
+              
+              <div className="flex items-center space-x-1 ml-4">
+                <button 
+                  onClick={() => handleView(doc.id)}
+                  className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  title="View document"
+                >
+                  <EyeIcon className="h-4 w-4" />
+                </button>
+                <button 
+                  onClick={() => handleChat(doc.id)}
+                  className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                  title="Chat with document"
+                >
+                  <ChatBubbleLeftRightIcon className="h-4 w-4" />
+                </button>
+                <button 
+                  onClick={() => handleDelete(doc.id)}
+                  className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Delete document"
+                >
+                  <TrashIcon className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           </div>
         </div>

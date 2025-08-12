@@ -5,7 +5,7 @@ import { FolderIcon, PlusIcon, ChevronRightIcon, ChevronDownIcon } from '@heroic
 import { useAuthStore } from '../lib/stores/authStore'
 import { toast } from 'react-hot-toast'
 
-export default function Sidebar({ selectedCollection, onSelectCollection }) {
+export default function Sidebar({ selectedCollection, onSelectCollection, isCollapsed = false }) {
   const [collections, setCollections] = useState([])
   const [expandedCollections, setExpandedCollections] = useState(new Set())
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -76,30 +76,51 @@ export default function Sidebar({ selectedCollection, onSelectCollection }) {
   }
 
   return (
-    <div className="w-64 bg-gray-50 border-r border-gray-200 h-full">
-      <div className="p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-medium text-gray-900">Collections</h2>
-          <button 
-            onClick={() => setShowCreateModal(true)}
-            className="text-gray-400 hover:text-gray-600"
-            title="Créer une nouvelle collection"
-          >
-            <PlusIcon className="h-5 w-5" />
-          </button>
-        </div>
+    <div className="h-full bg-white flex flex-col">
+      {/* Header */}
+      <div className="p-4 border-b border-gray-200">
+        {!isCollapsed && (
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">DocPDF Manager</h2>
+          </div>
+        )}
+        
+        {isCollapsed && (
+          <div className="flex justify-center mb-4">
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+              <span className="text-white text-sm font-bold">D</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Navigation */}
+      <div className="flex-1 p-4 space-y-2">
+        {!isCollapsed && (
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">Collections</h3>
+            <button 
+              onClick={() => setShowCreateModal(true)}
+              className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+              title="Create new collection"
+            >
+              <PlusIcon className="h-4 w-4" />
+            </button>
+          </div>
+        )}
         
         <div className="space-y-1">
           <button
             onClick={() => onSelectCollection(null)}
-            className={`w-full flex items-center px-2 py-2 text-sm font-medium rounded-md ${
+            className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
               selectedCollection === null
-                ? 'bg-blue-100 text-blue-900'
-                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                : 'text-gray-700 hover:bg-gray-100'
             }`}
+            title={isCollapsed ? "All Documents" : ""}
           >
-            <FolderIcon className="mr-3 h-5 w-5" />
-            Tous les documents
+            <FolderIcon className={`h-5 w-5 ${isCollapsed ? '' : 'mr-3'}`} />
+            {!isCollapsed && "All Documents"}
           </button>
           
           {collections.map((collection) => (
@@ -107,33 +128,46 @@ export default function Sidebar({ selectedCollection, onSelectCollection }) {
               <button
                 onClick={() => {
                   onSelectCollection(collection.id)
-                  toggleCollection(collection.id)
+                  if (!isCollapsed) {
+                    toggleCollection(collection.id)
+                  }
                 }}
-                className={`w-full flex items-center px-2 py-2 text-sm font-medium rounded-md ${
+                className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
                   selectedCollection === collection.id
-                    ? 'bg-blue-100 text-blue-900'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                    : 'text-gray-700 hover:bg-gray-100'
                 }`}
+                title={isCollapsed ? collection.name : ""}
               >
-                {expandedCollections.has(collection.id) ? (
-                  <ChevronDownIcon className="mr-1 h-4 w-4" />
-                ) : (
-                  <ChevronRightIcon className="mr-1 h-4 w-4" />
+                {!isCollapsed && expandedCollections.has(collection.id) ? (
+                  <ChevronDownIcon className="mr-1 h-4 w-4 text-gray-400" />
+                ) : !isCollapsed ? (
+                  <ChevronRightIcon className="mr-1 h-4 w-4 text-gray-400" />
+                ) : null}
+                <FolderIcon className={`h-5 w-5 ${isCollapsed ? '' : 'mr-2'}`} />
+                {!isCollapsed && (
+                  <>
+                    <span className="truncate">{collection.name}</span>
+                    <span className="ml-auto text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                      {collection.documentCount}
+                    </span>
+                  </>
                 )}
-                <FolderIcon className="mr-2 h-5 w-5" />
-                {collection.name}
-                <span className="ml-auto text-xs text-gray-500">
-                  {collection.documentCount}
-                </span>
               </button>
             </div>
           ))}
         </div>
         
-        {collections.length === 0 && (
-          <div className="text-center py-6 text-gray-500">
-            <FolderIcon className="mx-auto h-8 w-8 text-gray-400" />
-            <p className="mt-2 text-sm">Aucune collection</p>
+        {!isCollapsed && collections.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            <FolderIcon className="mx-auto h-8 w-8 text-gray-300" />
+            <p className="mt-2 text-sm">No collections yet</p>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="mt-2 text-xs text-blue-600 hover:text-blue-700"
+            >
+              Create your first collection
+            </button>
           </div>
         )}
       </div>

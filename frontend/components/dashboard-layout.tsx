@@ -3,7 +3,6 @@
 import type React from "react"
 
 import { useState } from "react"
-import { motion } from "framer-motion"
 import {
   Home,
   FileText,
@@ -51,19 +50,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
       {/* Sidebar */}
-      <motion.div
-        initial={false}
-        animate={{ x: sidebarOpen ? 0 : "-100%" }}
-        transition={{ type: "tween", duration: 0.3 }}
-        className="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl lg:translate-x-0 lg:static lg:inset-0"
-      >
+      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transition-transform duration-300 lg:translate-x-0 lg:static lg:inset-0 ${
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+      }`}>
         <div className="flex h-full flex-col">
           {/* Logo */}
           <div className="flex h-16 items-center justify-between px-6 border-b border-slate-200">
@@ -144,16 +140,21 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </DropdownMenu>
           </div>
         </div>
-      </motion.div>
+      </div>
 
       {/* Main content */}
-      <div className="lg:pl-64">
+      <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar */}
         <div className="sticky top-0 z-30 bg-white border-b border-slate-200 px-4 py-4 lg:px-8">
           <div className="flex items-center justify-between">
             <Button variant="ghost" size="sm" className="lg:hidden" onClick={() => setSidebarOpen(true)}>
               <Menu className="w-5 h-5" />
             </Button>
+            
+            {/* Desktop header content */}
+            <div className="hidden lg:flex items-center">
+              <h2 className="text-lg font-semibold text-slate-800">DocPDF Manager</h2>
+            </div>
 
             <div className="flex items-center space-x-4 ml-auto">
               <Button variant="ghost" size="sm" className="relative">
@@ -165,7 +166,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
 
         {/* Page content */}
-        <main className="p-4 lg:p-8">{children}</main>
+        <main className="px-4 pb-4 flex-1 overflow-auto lg:px-8 lg:pb-8">{children}</main>
       </div>
     </div>
   )

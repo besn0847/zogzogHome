@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff, FileText, Loader2 } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 interface LoginForm {
   email: string
@@ -22,6 +23,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const router = useRouter()
 
   const {
     register,
@@ -42,12 +44,38 @@ export default function LoginPage() {
     setError("")
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-      console.log("Login data:", data)
-      // Redirect to dashboard would happen here
+      const response = await fetch('http://localhost:3001/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password
+        })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Connexion échouée')
+      }
+
+      // Store tokens for future use
+      if (result.accessToken) {
+        localStorage.setItem('accessToken', result.accessToken)
+      }
+      if (result.refreshToken) {
+        localStorage.setItem('refreshToken', result.refreshToken)
+      }
+
+      console.log("Login successful:", result)
+      
+      // Redirect to dashboard
+      router.push('/dashboard')
+      
     } catch (err) {
-      setError("Email ou mot de passe incorrect")
+      setError(err instanceof Error ? err.message : "Email ou mot de passe incorrect")
     } finally {
       setIsLoading(false)
     }

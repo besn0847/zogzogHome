@@ -33,8 +33,11 @@ export default function RegisterPage() {
     handleSubmit,
     formState: { errors, isValid },
     watch,
+    getValues,
+    setValue,
   } = useForm<RegisterForm>({
     mode: "onChange",
+    reValidateMode: "onChange",
     defaultValues: {
       firstName: "",
       lastName: "",
@@ -45,19 +48,69 @@ export default function RegisterPage() {
     },
   })
 
+  // Debug: Log form validation state
+  console.log("Form validation state:", { isValid, errors, isLoading })
+
   const password = watch("password")
+  const formValues = watch()
+
+  // Custom validation check
+  const isFormValid = () => {
+    const values = getValues()
+    const checks = {
+      firstName: values.firstName?.trim().length >= 2,
+      lastName: values.lastName?.trim().length >= 2,
+      email: values.email?.includes('@') && values.email?.includes('.'),
+      passwordLength: values.password?.length >= 8,
+      passwordPattern: /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(values.password || ''),
+      confirmPassword: values.confirmPassword === values.password,
+      acceptTerms: values.acceptTerms === true,
+      noErrors: Object.keys(errors).length === 0
+    }
+    
+    console.log("Validation checks:", checks, "Values:", values)
+    
+    return Object.values(checks).every(check => check === true)
+  }
+
+  const customIsValid = isFormValid()
 
   const onSubmit = async (data: RegisterForm) => {
     setIsLoading(true)
     setError("")
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-      console.log("Registration data:", data)
+      const response = await fetch('http://localhost:3001/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+          firstName: data.firstName,
+          lastName: data.lastName
+        })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Registration failed')
+      }
+
+      // Store tokens for future use
+      if (result.accessToken) {
+        localStorage.setItem('accessToken', result.accessToken)
+      }
+      if (result.refreshToken) {
+        localStorage.setItem('refreshToken', result.refreshToken)
+      }
+
+      console.log("Registration successful:", result)
       setSuccess(true)
     } catch (err) {
-      setError("Une erreur est survenue lors de la création du compte")
+      setError(err instanceof Error ? err.message : "Une erreur est survenue lors de la création du compte")
     } finally {
       setIsLoading(false)
     }
@@ -320,10 +373,18 @@ export default function RegisterPage() {
               <div className="flex items-start space-x-2">
                 <Checkbox
                   id="acceptTerms"
+                  checked={watch("acceptTerms")}
+                  onCheckedChange={(checked) => {
+                    setValue("acceptTerms", checked === true, { shouldValidate: true })
+                  }}
+                  className="data-[state=checked]:bg-[#3b82f6] data-[state=checked]:border-[#3b82f6] mt-1"
+                />
+                {/* Hidden input for form validation */}
+                <input
+                  type="hidden"
                   {...register("acceptTerms", {
                     required: "Vous devez accepter les conditions d'utilisation",
                   })}
-                  className="data-[state=checked]:bg-[#3b82f6] data-[state=checked]:border-[#3b82f6] mt-1"
                 />
                 <Label htmlFor="acceptTerms" className="text-sm text-slate-600 cursor-pointer leading-relaxed">
                   J'accepte les{" "}
@@ -348,7 +409,7 @@ export default function RegisterPage() {
 
               <Button
                 type="submit"
-                disabled={!isValid || isLoading}
+                disabled={!customIsValid || isLoading}
                 className="w-full bg-gradient-to-r from-[#3b82f6] to-[#10b981] hover:from-[#1e3a8a] hover:to-[#059669] text-white font-medium py-2.5 transition-all duration-200 disabled:opacity-50"
               >
                 {isLoading ? (
@@ -357,7 +418,7 @@ export default function RegisterPage() {
                     Création du compte...
                   </>
                 ) : (
-                  "Créer mon compte"
+                  `Créer mon compte ${!customIsValid ? '(Form Invalid)' : '(Ready)'}`
                 )}
               </Button>
             </form>

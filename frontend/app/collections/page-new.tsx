@@ -55,7 +55,7 @@ import { Switch } from "@/components/ui/switch"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
-import { toast } from "sonner"
+import { useToast } from "@/hooks/use-toast"
 import DashboardLayout from "@/components/dashboard-layout"
 import { useCollections } from "@/hooks/useCollections"
 
@@ -481,6 +481,7 @@ export default function CollectionsPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [filterStatus, setFilterStatus] = useState<'all' | 'public' | 'private'>('all')
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const { toast } = useToast()
 
   // Use the new Collections hook
   const {
@@ -501,59 +502,61 @@ export default function CollectionsPage() {
     if (!formattedCollections) return []
     
     return formattedCollections.filter(collection => {
-      // Search filter
-      const matchesSearch = searchQuery === '' || 
-        collection.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (collection.description && collection.description.toLowerCase().includes(searchQuery.toLowerCase()))
+      const matchesSearch = collection.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           collection.description.toLowerCase().includes(searchQuery.toLowerCase())
       
-      // Status filter
-      const matchesStatus = filterStatus === 'all' || 
-        (filterStatus === 'public' && collection.isPublic) ||
-        (filterStatus === 'private' && !collection.isPublic)
+      const matchesFilter = filterStatus === 'all' || 
+                           (filterStatus === 'public' && collection.isPublic) ||
+                           (filterStatus === 'private' && !collection.isPublic)
       
-      return matchesSearch && matchesStatus
+      return matchesSearch && matchesFilter
     })
   }, [formattedCollections, searchQuery, filterStatus])
 
   const handleCreateCollection = async (data: any) => {
     try {
-      await createCollection({
-        name: data.name,
-        description: data.description,
-        color: data.color,
-        icon: data.icon,
-        isPublic: data.isPublic
+      await createCollection(data)
+      toast({
+        title: "Collection créée",
+        description: `La collection "${data.name}" a été créée avec succès.`,
       })
-      toast("Collection créée avec succès!")
-    } catch (error) {
-      console.error('Error creating collection:', error)
-      toast("Erreur lors de la création de la collection")
+    } catch (error: any) {
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de créer la collection.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleDeleteCollection = async (id: string) => {
+    if (!confirm("Êtes-vous sûr de vouloir supprimer cette collection ?")) return
+    
+    try {
+      await deleteCollection(id)
+      toast({
+        title: "Collection supprimée",
+        description: "La collection a été supprimée avec succès.",
+      })
+    } catch (error: any) {
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible de supprimer la collection.",
+        variant: "destructive",
+      })
     }
   }
 
   const handleEditCollection = (collection: any) => {
     // TODO: Implement edit dialog
     console.log('Edit collection:', collection)
-    toast("Fonction d'édition à implémenter")
-  }
-
-  const handleDeleteCollection = async (id: string) => {
-    try {
-      await deleteCollection(id)
-      toast("Collection supprimée avec succès!")
-    } catch (error) {
-      console.error('Error deleting collection:', error)
-      toast("Erreur lors de la suppression de la collection")
-    }
   }
 
   const handleShareCollection = (collection: any) => {
     // TODO: Implement share dialog
     console.log('Share collection:', collection)
-    toast("Fonction de partage à implémenter")
   }
 
-  // Show error state
   if (collectionsError) {
     return (
       <DashboardLayout>
@@ -594,110 +597,167 @@ export default function CollectionsPage() {
           </Button>
         </div>
 
-        {/* Search and Filters */}
+        {/* Stats */}
+        {!collectionsLoading && formattedCollections && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <FolderOpen className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold">{formattedCollections.length}</div>
+                    <div className="text-sm text-muted-foreground">Collections</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold">
+                      {formattedCollections.reduce((acc, col) => acc + col.count, 0)}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Documents</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <Globe className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold">
+                      {formattedCollections.filter(col => col.isPublic).length}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Publiques</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                    <Users className="w-5 h-5 text-orange-600" />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold">
+                      {formattedCollections.reduce((acc, col) => acc + col.members, 0)}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Membres</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Filters and Search */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
-              placeholder="Rechercher dans les collections..."
+              placeholder="Rechercher des collections..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
             />
           </div>
-
-          <Select value={filterStatus} onValueChange={(value: any) => setFilterStatus(value)}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Toutes</SelectItem>
-              <SelectItem value="public">Publiques</SelectItem>
-              <SelectItem value="private">Privées</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <div className="flex gap-2">
-            <Button
-              variant={viewMode === "grid" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setViewMode("grid")}
-            >
-              <Grid3X3 className="w-4 h-4" />
-            </Button>
-            <Button
-              variant={viewMode === "list" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setViewMode("list")}
-            >
-              <List className="w-4 h-4" />
-            </Button>
+          
+          <div className="flex items-center gap-2">
+            <Select value={filterStatus} onValueChange={(value: any) => setFilterStatus(value)}>
+              <SelectTrigger className="w-[140px]">
+                <Filter className="w-4 h-4 mr-2" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes</SelectItem>
+                <SelectItem value="public">Publiques</SelectItem>
+                <SelectItem value="private">Privées</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <div className="flex items-center border rounded-lg">
+              <Button
+                variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('grid')}
+                className="rounded-r-none"
+              >
+                <Grid3X3 className="w-4 h-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('list')}
+                className="rounded-l-none"
+              >
+                <List className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </div>
 
-        {/* Loading State */}
-        {collectionsLoading && <CollectionsSkeleton />}
-
         {/* Collections Grid/List */}
-        {!collectionsLoading && (
-          <AnimatePresence mode="wait">
-            {viewMode === "grid" ? (
-              <motion.div
-                key="grid"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-              >
-                {filteredCollections.map((collection) => (
-                  <CollectionCard
-                    key={collection.id}
-                    collection={collection}
-                    onEdit={handleEditCollection}
-                    onDelete={handleDeleteCollection}
-                    onShare={handleShareCollection}
-                    viewMode="grid"
-                  />
-                ))}
-              </motion.div>
-            ) : (
-              <motion.div
-                key="list"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="space-y-4"
-              >
-                {filteredCollections.map((collection) => (
-                  <CollectionCard
-                    key={collection.id}
-                    collection={collection}
-                    onEdit={handleEditCollection}
-                    onDelete={handleDeleteCollection}
-                    onShare={handleShareCollection}
-                    viewMode="list"
-                  />
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        )}
-
-        {/* Empty State */}
-        {!collectionsLoading && filteredCollections.length === 0 && (
+        {collectionsLoading ? (
+          <CollectionsSkeleton />
+        ) : filteredCollections.length === 0 ? (
           <div className="text-center py-12">
             <FolderOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Aucune collection trouvée</h3>
+            <h3 className="text-lg font-semibold mb-2">
+              {searchQuery || filterStatus !== 'all' ? 'Aucune collection trouvée' : 'Aucune collection'}
+            </h3>
             <p className="text-muted-foreground mb-4">
-              {searchQuery ? "Aucune collection ne correspond à votre recherche." : "Commencez par créer votre première collection."}
+              {searchQuery || filterStatus !== 'all' 
+                ? 'Essayez de modifier vos critères de recherche'
+                : 'Commencez par créer votre première collection'
+              }
             </p>
-            {!searchQuery && (
+            {!searchQuery && filterStatus === 'all' && (
               <Button onClick={() => setCreateDialogOpen(true)}>
                 <Plus className="w-4 h-4 mr-2" />
                 Créer une collection
               </Button>
             )}
           </div>
+        ) : (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={viewMode}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.2 }}
+              className={
+                viewMode === 'grid'
+                  ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                  : "space-y-4"
+              }
+            >
+              {filteredCollections.map((collection) => (
+                <CollectionCard
+                  key={collection.id}
+                  collection={collection}
+                  onEdit={handleEditCollection}
+                  onDelete={handleDeleteCollection}
+                  onShare={handleShareCollection}
+                  viewMode={viewMode}
+                />
+              ))}
+            </motion.div>
+          </AnimatePresence>
         )}
       </div>
     </DashboardLayout>

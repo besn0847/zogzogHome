@@ -78,6 +78,14 @@ const collectionSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: Date.now
+  },
+  shareToken: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
+  shareTokenExpiresAt: {
+    type: Date
   }
 }, {
   timestamps: true

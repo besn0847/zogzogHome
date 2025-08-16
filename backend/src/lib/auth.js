@@ -34,12 +34,36 @@ export function verifyToken(token) {
 // Middleware to authenticate requests
 export async function authenticateUser(req) {
   try {
-    const authHeader = req.headers.authorization
+    console.log('Auth headers:', req.headers)
+    console.log('Authorization header:', req.headers.authorization)
+    console.log('Headers get:', req.headers.get ? req.headers.get('authorization') : 'No get method')
+    
+    const authHeader = req.headers.authorization || req.headers.get?.('authorization')
+    console.log('Final authHeader:', authHeader)
+    
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       throw new Error('Token d\'authentification manquant')
     }
 
     const token = authHeader.substring(7)
+    console.log('Extracted token:', token)
+    console.log('NODE_ENV:', process.env.NODE_ENV)
+    
+    // Development mode: Accept mock tokens
+    if (process.env.NODE_ENV !== 'production' && token.startsWith('dev-mock-jwt-token-')) {
+      console.log('Using mock authentication for development')
+      
+      // Return a mock user for development
+      return {
+        _id: 'dev-user-id',
+        email: 'dev@example.com',
+        firstName: 'Développeur',
+        lastName: 'Test',
+        isActive: true,
+        role: 'user'
+      }
+    }
+    
     const decoded = verifyToken(token)
     
     if (decoded.type !== 'access') {

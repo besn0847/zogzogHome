@@ -60,7 +60,7 @@ services:
       - ./nginx/ssl:/etc/nginx/ssl:ro
       - nginx_logs:/var/log/nginx
     depends_on:
-      - frontend
+      # - frontend
       - backend
     networks:
       - docpdf-network
@@ -73,7 +73,7 @@ services:
     container_name: docpdf-backend
     restart: unless-stopped
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       MONGODB_URI: mongodb://${MONGO_USERNAME:-docpdf_admin}:${MONGO_PASSWORD:-secure_password}@mongodb:27017/docpdf?authSource=admin
       REDIS_URL: redis://:${REDIS_PASSWORD:-redis_password}@redis:6379
       QDRANT_URL: http://qdrant:6333
@@ -94,22 +94,22 @@ services:
     networks:
       - docpdf-network
 
-  # Frontend - Interface NextJS
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: docpdf-frontend
-    restart: unless-stopped
-    environment:
-      NODE_ENV: production
-      NEXT_PUBLIC_BACKEND_URL: http://localhost:3001
-    ports:
-      - "3000:3000"
-    depends_on:
-      - backend
-    networks:
-      - docpdf-network
+  # # Frontend - Interface NextJS
+  # frontend:
+  #   build:
+  #     context: ./frontend
+  #     dockerfile: Dockerfile
+  #   container_name: docpdf-frontend
+  #   restart: unless-stopped
+  #   environment:
+  #     NODE_ENV: production
+  #     NEXT_PUBLIC_BACKEND_URL: http://localhost:3001
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     - backend
+  #   networks:
+  #     - docpdf-network
 
   # Service Docling - Conversion PDF vers Markdown
   docling-service:

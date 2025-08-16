@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
+import { useAuth } from "@/contexts/auth-context"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -48,6 +49,7 @@ const navigation = [
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { user, logout } = useAuth()
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row">
@@ -112,8 +114,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 text-left">
-                      <p className="text-sm font-medium text-slate-800">Jean Dupont</p>
-                      <p className="text-xs text-slate-500">jean@example.com</p>
+                      <p className="text-sm font-medium text-slate-800">{user?.name || 'Utilisateur'}</p>
+                      <p className="text-xs text-slate-500">{user?.email || 'email@example.com'}</p>
                     </div>
                   </div>
                 </Button>
@@ -132,7 +134,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   Aide
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-red-600">
+                <DropdownMenuItem className="text-red-600" onClick={logout}>
                   <LogOut className="w-4 h-4 mr-2" />
                   Déconnexion
                 </DropdownMenuItem>
@@ -161,6 +163,34 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 <Bell className="w-5 h-5" />
                 <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
               </Button>
+              
+              {/* Mobile logout button */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="lg:hidden">
+                    <Avatar className="w-6 h-6">
+                      <AvatarFallback className="bg-gradient-to-r from-blue-500 to-emerald-500 text-white text-xs">
+                        {user?.name?.charAt(0) || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem>
+                    <User className="w-4 h-4 mr-2" />
+                    Profil
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Settings className="w-4 h-4 mr-2" />
+                    Paramètres
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="text-red-600" onClick={logout}>
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Déconnexion
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>

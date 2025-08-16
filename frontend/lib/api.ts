@@ -1,4 +1,6 @@
-const API_BASE_URL = '/api';
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? '/api' 
+  : 'http://localhost:3001/api';
 
 export interface Document {
   _id: string;
@@ -45,10 +47,14 @@ async function fetchApi<T>(
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
   try {
+    // Get JWT token from localStorage
+    const accessToken = localStorage.getItem('accessToken');
+    
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
       headers: {
         'Content-Type': 'application/json',
+        ...(accessToken && { 'Authorization': `Bearer ${accessToken}` }),
         ...options.headers,
       },
       credentials: 'include',
@@ -56,7 +62,7 @@ async function fetchApi<T>(
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      return { error: error.message || 'An error occurred' };
+      return { error: error.error || error.message || 'An error occurred' };
     }
 
     const data = await response.json();
@@ -122,6 +128,82 @@ export const api = {
   // Collections
   getCollections: async () => {
     return fetchApi<{ collections: Collection[] }>('/collections');
+  },
+
+  createCollection: async (data: {
+    name: string;
+    description?: string;
+    color?: string;
+    icon?: string;
+    isPublic?: boolean;
+  }) => {
+    return fetchApi<{ collection: Collection }>('/collections', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateCollection: async (id: string, data: Partial<Collection>) => {
+    return fetchApi<{ collection: Collection }>(`/collections/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteCollection: async (id: string) => {
+    return fetchApi<{ message: string }>(`/collections/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  getCollection: async (id: string) => {
+    return fetchApi<{ collection: Collection }>(`/collections/${id}`);
+  },
+
+  getCollectionMembers: async (id: string) => {
+    return fetchApi<{ members: any[] }>(`/collections/${id}/members`);
+  },
+
+  addCollectionMember: async (id: string, data: { email: string; role: string }) => {
+    return fetchApi<{ member: any }>(`/collections/${id}/members`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateCollectionMember: async (id: string, userId: string, data: { role: string }) => {
+    return fetchApi<{ member: any }>(`/collections/${id}/members/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  removeCollectionMember: async (id: string, userId: string) => {
+    return fetchApi<{ message: string }>(`/collections/${id}/members/${userId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  getCollectionStats: async (id: string) => {
+    return fetchApi<{ stats: any }>(`/collections/${id}/stats`);
+  },
+
+  getCollectionSharing: async (id: string) => {
+    return fetchApi<{ shareInfo: any }>(`/collections/${id}/share`);
+  },
+
+  updateCollectionSharing: async (id: string, data: any) => {
+    return fetchApi<{ shareInfo: any }>(`/collections/${id}/share`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateCollectionSharingSettings: async (id: string, data: any) => {
+    return fetchApi<{ shareInfo: any }>(`/collections/${id}/share`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   },
 
   // Statistics
